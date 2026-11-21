@@ -1,7 +1,28 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+function getMongoUrl() {
+  const raw = process.env.MONGODB_URI || '';
+  if (raw.includes('mongodb.net/?')) {
+    return raw.replace('mongodb.net/?', 'mongodb.net/nextboard?');
+  }
+  if (raw.endsWith('mongodb.net') || raw.endsWith('mongodb.net/')) {
+    return raw.replace(/\/?$/, '/nextboard');
+  }
+  return raw;
+}
+
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
+const prisma =
+  globalForPrisma.prisma ||
+  new PrismaClient({
+    datasources: {
+      db: {
+        url: getMongoUrl(),
+      },
+    },
+  });
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
