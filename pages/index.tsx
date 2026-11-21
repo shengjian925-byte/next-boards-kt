@@ -5,6 +5,7 @@ type Post = { id: string; name: string; title: string; content: string; createdA
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [search, setSearch] = useState('');
   const [openForm, setOpenForm] = useState(false);
   const [name, setName] = useState('');
   const [title, setTitle] = useState('');
@@ -50,11 +51,22 @@ export default function Home() {
     setLoading(false);
   };
 
+  const q = search.trim().toLowerCase();
+  const filtered = q
+    ? posts.filter(
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          p.content.toLowerCase().includes(q) ||
+          p.name.toLowerCase().includes(q) ||
+          p.replies?.some((r) => r.content.toLowerCase().includes(q) || r.name.toLowerCase().includes(q))
+      )
+    : posts;
+
   return (
     <div className="min-h-screen bg-black text-gray-100 font-sans">
       <div className="max-w-2xl mx-auto p-4">
-        <div className="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
-          <h1 className="text-xl font-bold text-white">ブルガリアの掲示板</h1>
+        <div className="flex items-center justify-between border-b border-gray-800 pb-3 mb-3">
+          <h1 className="text-xl font-bold text-white">匿名掲示板</h1>
           <button
             type="button"
             onClick={() => setOpenForm(!openForm)}
@@ -62,6 +74,25 @@ export default function Home() {
           >
             {openForm ? '×' : '＋'}
           </button>
+        </div>
+
+        <div className="relative mb-4">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="スレッド・返信・名前を検索..."
+            className="w-full bg-zinc-900 border border-zinc-800 text-white px-3 py-2 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-2 text-gray-400 hover:text-white text-sm"
+            >
+              ×
+            </button>
+          )}
         </div>
 
         {openForm && (
@@ -76,35 +107,39 @@ export default function Home() {
         )}
 
         <div className="space-y-4">
-          {posts.map((post, idx) => (
-            <div key={post.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl shadow">
-              <div className="text-xs text-gray-400 mb-1">
-                <span className="font-bold text-white text-sm">{posts.length - idx}: {post.title}</span> ／ <span className="text-emerald-400 font-bold">{post.name}</span> ／ {new Date(post.createdAt).toLocaleString('ja-JP')}
-              </div>
-              <div className="whitespace-pre-wrap text-gray-100 mb-3">{post.content}</div>
+          {filtered.length === 0 ? (
+            <p className="text-center text-gray-500 text-sm py-8">一致する投稿がありません</p>
+          ) : (
+            filtered.map((post, idx) => (
+              <div key={post.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl shadow">
+                <div className="text-xs text-gray-400 mb-1">
+                  <span className="font-bold text-white text-sm">{filtered.length - idx}: {post.title}</span> ／ <span className="text-emerald-400 font-bold">{post.name}</span> ／ {new Date(post.createdAt).toLocaleString('ja-JP')}
+                </div>
+                <div className="whitespace-pre-wrap text-gray-100 mb-3">{post.content}</div>
 
-              <div className="border-t border-zinc-800 pt-2 pl-3 space-y-2">
-                {post.replies?.map((r, rIdx) => (
-                  <div key={r.id} className="bg-zinc-800/80 p-2 rounded text-sm">
-                    <div className="text-xs text-gray-400">
-                      <span className="font-bold text-gray-200">≫{rIdx + 1}</span> <span className="text-emerald-400 font-bold">{r.name}</span> ({new Date(r.createdAt).toLocaleString('ja-JP')})
+                <div className="border-t border-zinc-800 pt-2 pl-3 space-y-2">
+                  {post.replies?.map((r, rIdx) => (
+                    <div key={r.id} className="bg-zinc-800/80 p-2 rounded text-sm">
+                      <div className="text-xs text-gray-400">
+                        <span className="font-bold text-gray-200">≫{rIdx + 1}</span> <span className="text-emerald-400 font-bold">{r.name}</span> ({new Date(r.createdAt).toLocaleString('ja-JP')})
+                      </div>
+                      <div className="whitespace-pre-wrap text-gray-100 mt-1">{r.content}</div>
                     </div>
-                    <div className="whitespace-pre-wrap text-gray-100 mt-1">{r.content}</div>
-                  </div>
-                ))}
+                  ))}
 
-                <div className="flex flex-col gap-1 pt-1">
-                  <input className="bg-zinc-800 border border-zinc-700 text-white p-1.5 rounded text-sm placeholder-gray-400" placeholder="名前（省略可）" value={replyName[post.id] || ''} onChange={(e) => setReplyName({ ...replyName, [post.id]: e.target.value })} />
-                  <div className="flex gap-1">
-                    <input className="bg-zinc-800 border border-zinc-700 text-white p-1.5 rounded text-sm flex-1 placeholder-gray-400" placeholder="返信を書く..." value={replyText[post.id] || ''} onChange={(e) => setReplyText({ ...replyText, [post.id]: e.target.value })} />
-                    <button type="button" disabled={loading} onClick={() => submitReply(post.id)} className="bg-zinc-700 hover:bg-zinc-600 text-white text-sm px-3 py-1.5 rounded font-bold">
-                      返信
-                    </button>
+                  <div className="flex flex-col gap-1 pt-1">
+                    <input className="bg-zinc-800 border border-zinc-700 text-white p-1.5 rounded text-sm placeholder-gray-400" placeholder="名前（省略可）" value={replyName[post.id] || ''} onChange={(e) => setReplyName({ ...replyName, [post.id]: e.target.value })} />
+                    <div className="flex gap-1">
+                      <input className="bg-zinc-800 border border-zinc-700 text-white p-1.5 rounded text-sm flex-1 placeholder-gray-400" placeholder="返信を書く..." value={replyText[post.id] || ''} onChange={(e) => setReplyText({ ...replyText, [post.id]: e.target.value })} />
+                      <button type="button" disabled={loading} onClick={() => submitReply(post.id)} className="bg-zinc-700 hover:bg-zinc-600 text-white text-sm px-3 py-1.5 rounded font-bold">
+                        返信
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>
