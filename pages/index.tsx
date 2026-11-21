@@ -51,59 +51,61 @@ export default function Home() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 bg-gray-100 min-h-screen font-sans">
-      <div className="flex items-center justify-between border-b-2 border-gray-800 pb-3 mb-4">
-        <h1 className="text-xl font-bold">匿名掲示板</h1>
-        <button
-          type="button"
-          onClick={() => setOpenForm(!openForm)}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold w-11 h-11 rounded-xl text-2xl flex items-center justify-center shadow"
-        >
-          {openForm ? '×' : '＋'}
-        </button>
-      </div>
-
-      {openForm && (
-        <form onSubmit={submitPost} className="bg-white p-4 rounded-xl shadow mb-6 space-y-2">
-          <input className="w-full border p-2 rounded" placeholder="名前（省略可：名無しさん）" value={name} onChange={(e) => setName(e.target.value)} />
-          <input className="w-full border p-2 rounded" placeholder="タイトル（省略可）" value={title} onChange={(e) => setTitle(e.target.value)} />
-          <textarea className="w-full border p-2 rounded" rows={3} required placeholder="新規スレッドの内容..." value={content} onChange={(e) => setContent(e.target.value)} />
-          <button disabled={loading} className="w-full bg-blue-600 text-white font-bold py-2 rounded-lg">
-            {loading ? '送信中...' : '新規スレッドを立てる'}
+    <div className="min-h-screen bg-black text-gray-100 font-sans">
+      <div className="max-w-2xl mx-auto p-4">
+        <div className="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
+          <h1 className="text-xl font-bold text-white">匿名掲示板</h1>
+          <button
+            type="button"
+            onClick={() => setOpenForm(!openForm)}
+            className="bg-blue-600 hover:bg-blue-500 text-white font-bold w-11 h-11 rounded-xl text-2xl flex items-center justify-center shadow"
+          >
+            {openForm ? '×' : '＋'}
           </button>
-        </form>
-      )}
+        </div>
 
-      <div className="space-y-4">
-        {posts.map((post, idx) => (
-          <div key={post.id} className="bg-white p-4 rounded-xl shadow">
-            <div className="text-xs text-gray-500 mb-1">
-              <span className="font-bold text-black text-sm">{posts.length - idx}: {post.title}</span> ／ <span className="text-green-700 font-bold">{post.name}</span> ／ {new Date(post.createdAt).toLocaleString('ja-JP')}
-            </div>
-            <div className="whitespace-pre-wrap text-gray-900 mb-3">{post.content}</div>
+        {openForm && (
+          <form onSubmit={submitPost} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl shadow mb-6 space-y-2">
+            <input className="w-full bg-zinc-800 border border-zinc-700 text-white p-2 rounded placeholder-gray-400" placeholder="名前（省略可：名無しさん）" value={name} onChange={(e) => setName(e.target.value)} />
+            <input className="w-full bg-zinc-800 border border-zinc-700 text-white p-2 rounded placeholder-gray-400" placeholder="タイトル（省略可）" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <textarea className="w-full bg-zinc-800 border border-zinc-700 text-white p-2 rounded placeholder-gray-400" rows={3} required placeholder="新規スレッドの内容..." value={content} onChange={(e) => setContent(e.target.value)} />
+            <button disabled={loading} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg">
+              {loading ? '送信中...' : '新規スレッドを立てる'}
+            </button>
+          </form>
+        )}
 
-            <div className="border-t pt-2 pl-3 space-y-2">
-              {post.replies?.map((r, rIdx) => (
-                <div key={r.id} className="bg-gray-50 p-2 rounded text-sm">
-                  <div className="text-xs text-gray-500">
-                    <span className="font-bold text-gray-700">≫{rIdx + 1}</span> <span className="text-green-700 font-bold">{r.name}</span> ({new Date(r.createdAt).toLocaleString('ja-JP')})
+        <div className="space-y-4">
+          {posts.map((post, idx) => (
+            <div key={post.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl shadow">
+              <div className="text-xs text-gray-400 mb-1">
+                <span className="font-bold text-white text-sm">{posts.length - idx}: {post.title}</span> ／ <span className="text-emerald-400 font-bold">{post.name}</span> ／ {new Date(post.createdAt).toLocaleString('ja-JP')}
+              </div>
+              <div className="whitespace-pre-wrap text-gray-100 mb-3">{post.content}</div>
+
+              <div className="border-t border-zinc-800 pt-2 pl-3 space-y-2">
+                {post.replies?.map((r, rIdx) => (
+                  <div key={r.id} className="bg-zinc-800/80 p-2 rounded text-sm">
+                    <div className="text-xs text-gray-400">
+                      <span className="font-bold text-gray-200">≫{rIdx + 1}</span> <span className="text-emerald-400 font-bold">{r.name}</span> ({new Date(r.createdAt).toLocaleString('ja-JP')})
+                    </div>
+                    <div className="whitespace-pre-wrap text-gray-100 mt-1">{r.content}</div>
                   </div>
-                  <div className="whitespace-pre-wrap mt-1">{r.content}</div>
-                </div>
-              ))}
+                ))}
 
-              <div className="flex flex-col gap-1 pt-1">
-                <input className="border p-1.5 rounded text-sm" placeholder="名前（省略可）" value={replyName[post.id] || ''} onChange={(e) => setReplyName({ ...replyName, [post.id]: e.target.value })} />
-                <div className="flex gap-1">
-                  <input className="border p-1.5 rounded text-sm flex-1" placeholder="返信を書く..." value={replyText[post.id] || ''} onChange={(e) => setReplyText({ ...replyText, [post.id]: e.target.value })} />
-                  <button type="button" disabled={loading} onClick={() => submitReply(post.id)} className="bg-gray-800 text-white text-sm px-3 py-1.5 rounded font-bold">
-                    返信
-                  </button>
+                <div className="flex flex-col gap-1 pt-1">
+                  <input className="bg-zinc-800 border border-zinc-700 text-white p-1.5 rounded text-sm placeholder-gray-400" placeholder="名前（省略可）" value={replyName[post.id] || ''} onChange={(e) => setReplyName({ ...replyName, [post.id]: e.target.value })} />
+                  <div className="flex gap-1">
+                    <input className="bg-zinc-800 border border-zinc-700 text-white p-1.5 rounded text-sm flex-1 placeholder-gray-400" placeholder="返信を書く..." value={replyText[post.id] || ''} onChange={(e) => setReplyText({ ...replyText, [post.id]: e.target.value })} />
+                    <button type="button" disabled={loading} onClick={() => submitReply(post.id)} className="bg-zinc-700 hover:bg-zinc-600 text-white text-sm px-3 py-1.5 rounded font-bold">
+                      返信
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
