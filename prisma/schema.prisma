@@ -12,6 +12,7 @@ model AnonPost {
   name      String      @default("名無しさん")
   title     String
   content   String
+  likes     Int         @default(0)
   createdAt DateTime    @default(now())
   replies   AnonReply[]
 }
