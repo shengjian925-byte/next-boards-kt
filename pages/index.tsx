@@ -5,6 +5,7 @@ type Post = { id: string; name: string; title: string; content: string; createdA
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [openForm, setOpenForm] = useState(false);
   const [name, setName] = useState('');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -30,6 +31,7 @@ export default function Home() {
       body: JSON.stringify({ name, title, content }),
     });
     setTitle(''); setContent('');
+    setOpenForm(false);
     await load();
     setLoading(false);
   };
@@ -50,20 +52,31 @@ export default function Home() {
 
   return (
     <div className="max-w-2xl mx-auto p-4 bg-gray-100 min-h-screen font-sans">
-      <h1 className="text-xl font-bold border-b-2 border-gray-800 pb-2 mb-4">匿名掲示板</h1>
-
-      <form onSubmit={submitPost} className="bg-white p-4 rounded shadow mb-6 space-y-2">
-        <input className="w-full border p-2 rounded" placeholder="名前（省略可：名無しさん）" value={name} onChange={(e) => setName(e.target.value)} />
-        <input className="w-full border p-2 rounded" placeholder="タイトル（省略可）" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <textarea className="w-full border p-2 rounded" rows={3} required placeholder="新規スレッドの内容..." value={content} onChange={(e) => setContent(e.target.value)} />
-        <button disabled={loading} className="w-full bg-blue-600 text-white font-bold py-2 rounded">
-          {loading ? '送信中...' : '新規スレッドを立てる'}
+      <div className="flex items-center justify-between border-b-2 border-gray-800 pb-3 mb-4">
+        <h1 className="text-xl font-bold">匿名掲示板</h1>
+        <button
+          type="button"
+          onClick={() => setOpenForm(!openForm)}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold w-11 h-11 rounded-xl text-2xl flex items-center justify-center shadow"
+        >
+          {openForm ? '×' : '＋'}
         </button>
-      </form>
+      </div>
+
+      {openForm && (
+        <form onSubmit={submitPost} className="bg-white p-4 rounded-xl shadow mb-6 space-y-2">
+          <input className="w-full border p-2 rounded" placeholder="名前（省略可：名無しさん）" value={name} onChange={(e) => setName(e.target.value)} />
+          <input className="w-full border p-2 rounded" placeholder="タイトル（省略可）" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <textarea className="w-full border p-2 rounded" rows={3} required placeholder="新規スレッドの内容..." value={content} onChange={(e) => setContent(e.target.value)} />
+          <button disabled={loading} className="w-full bg-blue-600 text-white font-bold py-2 rounded-lg">
+            {loading ? '送信中...' : '新規スレッドを立てる'}
+          </button>
+        </form>
+      )}
 
       <div className="space-y-4">
         {posts.map((post, idx) => (
-          <div key={post.id} className="bg-white p-4 rounded shadow">
+          <div key={post.id} className="bg-white p-4 rounded-xl shadow">
             <div className="text-xs text-gray-500 mb-1">
               <span className="font-bold text-black text-sm">{posts.length - idx}: {post.title}</span> ／ <span className="text-green-700 font-bold">{post.name}</span> ／ {new Date(post.createdAt).toLocaleString('ja-JP')}
             </div>
