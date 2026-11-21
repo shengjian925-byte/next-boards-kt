@@ -6,6 +6,7 @@ type Post = { id: string; name: string; title: string; content: string; createdA
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<'new' | 'popular' | 'old'>('new');
   const [openForm, setOpenForm] = useState(false);
   const [name, setName] = useState('');
   const [title, setTitle] = useState('');
@@ -52,15 +53,20 @@ export default function Home() {
   };
 
   const q = search.trim().toLowerCase();
-  const filtered = q
-    ? posts.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
+  const filtered = posts
+    .filter((p) =>
+      !q
+        ? true
+        : p.title.toLowerCase().includes(q) ||
           p.content.toLowerCase().includes(q) ||
           p.name.toLowerCase().includes(q) ||
           p.replies?.some((r) => r.content.toLowerCase().includes(q) || r.name.toLowerCase().includes(q))
-      )
-    : posts;
+    )
+    .sort((a, b) => {
+      if (sort === 'popular') return (b.replies?.length || 0) - (a.replies?.length || 0);
+      if (sort === 'old') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
   return (
     <div className="min-h-screen bg-black text-gray-100 font-sans">
@@ -76,7 +82,7 @@ export default function Home() {
           </button>
         </div>
 
-        <div className="relative mb-4">
+        <div className="relative mb-3">
           <input
             type="text"
             value={search}
@@ -93,6 +99,30 @@ export default function Home() {
               ×
             </button>
           )}
+        </div>
+
+        <div className="flex gap-2 mb-4 bg-zinc-900 p-1 rounded-xl border border-zinc-800">
+          <button
+            type="button"
+            onClick={() => setSort('new')}
+            className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition ${sort === 'new' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+          >
+            最新順
+          </button>
+          <button
+            type="button"
+            onClick={() => setSort('popular')}
+            className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition ${sort === 'popular' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+          >
+            人気順
+          </button>
+          <button
+            type="button"
+            onClick={() => setSort('old')}
+            className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition ${sort === 'old' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+          >
+            古い順
+          </button>
         </div>
 
         {openForm && (
@@ -112,8 +142,13 @@ export default function Home() {
           ) : (
             filtered.map((post, idx) => (
               <div key={post.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl shadow">
-                <div className="text-xs text-gray-400 mb-1">
-                  <span className="font-bold text-white text-sm">{filtered.length - idx}: {post.title}</span> ／ <span className="text-emerald-400 font-bold">{post.name}</span> ／ {new Date(post.createdAt).toLocaleString('ja-JP')}
+                <div className="text-xs text-gray-400 mb-1 flex justify-between items-center">
+                  <div>
+                    <span className="font-bold text-white text-sm">{idx + 1}. {post.title}</span> ／ <span className="text-emerald-400 font-bold">{post.name}</span> ／ {new Date(post.createdAt).toLocaleString('ja-JP')}
+                  </div>
+                  <span className="bg-zinc-800 text-gray-300 px-2 py-0.5 rounded-full text-xs">
+                    返信 {post.replies?.length || 0}
+                  </span>
                 </div>
                 <div className="whitespace-pre-wrap text-gray-100 mb-3">{post.content}</div>
 
