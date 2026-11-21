@@ -8,9 +8,19 @@ datasource db {
 }
 
 model AnonPost {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  name      String   @default("名無しさん")
+  id        String      @id @default(auto()) @map("_id") @db.ObjectId
+  name      String      @default("名無しさん")
   title     String
+  content   String
+  createdAt DateTime    @default(now())
+  replies   AnonReply[]
+}
+
+model AnonReply {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  postId    String   @db.ObjectId
+  post      AnonPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  name      String   @default("名無しさん")
   content   String
   createdAt DateTime @default(now())
 }
