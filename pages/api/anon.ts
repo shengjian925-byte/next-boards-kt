@@ -1,27 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 
-function getMongoUrl() {
-  const raw = process.env.MONGODB_URI || '';
-  if (raw.includes('mongodb.net/?')) {
-    return raw.replace('mongodb.net/?', 'mongodb.net/nextboard?');
-  }
-  if (raw.endsWith('mongodb.net') || raw.endsWith('mongodb.net/')) {
-    return raw.replace(/\/?$/, '/nextboard');
-  }
-  return raw;
+const rawUrl = process.env.MONGODB_URI || '';
+if (rawUrl.includes('mongodb.net/?')) {
+  process.env.MONGODB_URI = rawUrl.replace('mongodb.net/?', 'mongodb.net/nextboard?');
+} else if (rawUrl.endsWith('mongodb.net') || rawUrl.endsWith('mongodb.net/')) {
+  process.env.MONGODB_URI = rawUrl.replace(/\/?$/, '/nextboard');
 }
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
-const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    datasources: {
-      db: {
-        url: getMongoUrl(),
-      },
-    },
-  });
+const prisma = globalForPrisma.prisma || new PrismaClient();
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -58,3 +46,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   return res.status(405).json({ error: 'Method not allowed' });
 }
+
