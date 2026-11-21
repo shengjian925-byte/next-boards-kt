@@ -31,5 +31,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const p = await prisma.anonPost.create({ data: { name: n, title: title?.trim() || '無題', content: content.trim() } });
     return res.status(201).json(p);
   }
+  if (req.method === 'PATCH') {
+    const { postId } = req.body;
+    if (!postId) return res.status(400).end();
+    const updated = await prisma.anonPost.update({
+      where: { id: postId },
+      data: { likes: { increment: 1 } },
+    });
+    return res.status(200).json(updated);
+  }
   return res.status(405).end();
 }
