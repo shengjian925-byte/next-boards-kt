@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
-type Reply = { id: string; name: string; content: string; image?: string; createdAt: string };
-type Post = { id: string; name: string; title: string; content: string; image?: string; likes?: number; createdAt: string; replies: Reply[] };
+type Reply = { id: string; name: string; content: string; image?: string | null; createdAt: string };
+type Post = { id: string; name: string; title: string; content: string; image?: string | null; likes?: number; createdAt: string; replies: Reply[] };
 
 function compressImage(file: File): Promise<string> {
   return new Promise((resolve) => {
@@ -20,7 +20,7 @@ function compressImage(file: File): Promise<string> {
         canvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
         resolve(canvas.toDataURL('image/jpeg', 0.7));
       };
-      img.src = e.target?.result as string;
+      img.src = (e.target?.result as string) || '';
     };
     reader.readAsDataURL(file);
   });
@@ -36,16 +36,18 @@ export default function Home() {
   const [name, setName] = useState('');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [pic,setPic]= useState('');
+  const [pic, setPic] = useState('');
   const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
   const [replyName, setReplyName] = useState<{ [key: string]: string }>({});
   const [replyImg, setReplyImg] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
-    const res = await fetch('/api/anon');
-    const data = await res.json();
-    if (Array.isArray(data)) setPosts(data);
+    try {
+      const res = await fetch('/api/anon');
+      const data = await res.json();
+      if (Array.isArray(data)) setPosts(data);
+    } catch {}
   };
 
   useEffect(() => {
@@ -58,14 +60,14 @@ export default function Home() {
 
   const submitPost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim() && !image) return;
+    if (!content.trim() && !pic) return;
     setLoading(true);
     await fetch('/api/anon', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, title, content, image }),
+      body: JSON.stringify({ name, title, content, image: pic }),
     });
-    setTitle(''); setContent(''); setImage('');
+    setTitle(''); setContent(''); setPic('');
     setOpenForm(false);
     await load();
     setLoading(false);
@@ -108,18 +110,18 @@ export default function Home() {
 
   const q = search.trim().toLowerCase();
   const filtered = posts
-    .filter((p) =>
-      !q
-        ? true
-        : p.title.toLowerCase().includes(q) ||
-          p.content.toLowerCase().includes(q) ||
-          p.name.toLowerCase().includes(q) ||
-          p.replies?.some((r) => r.content.toLowerCase().includes(q) || r.name.toLowerCase().includes(q))
-    )
+    .filter((p) => {
+      if (!q) return true;
+      const t = (p.title || '').toLowerCase();
+      const c = (p.content || '').toLowerCase();
+      const n = (p.name || '').toLowerCase();
+      const rHit = Array.isArray(p.replies) && p.replies.some((r) => (r.content || '').toLowerCase().includes(q) || (r.name || '').toLowerCase().includes(q));
+      return t.includes(q) || c.includes(q) || n.includes(q) || rHit;
+    })
     .sort((a, b) => {
       if (sort === 'popular') {
-        const scoreB = (b.replies?.length || 0) + (b.likes || 0);
-        const scoreA = (a.replies?.length || 0) + (a.likes || 0);
+        const scoreB = (a.replies ? b.replies.length : 0) + (b.likes || 0);
+        const scoreA = (a.replies ? a.replies.length : 0) + (a.likes || 0);
         return scoreB - scoreA;
       }
       if (sort === 'old') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
@@ -160,17 +162,17 @@ export default function Home() {
                   className="hidden"
                   onChange={async (e) => {
                     const list = e.target.files;
-                    if (list && list.length > 0) setImage(await compressImage(list.item(0)!));
+                    if (list && list.length > 0) setPic(await compressImage(list.item(0)!));
                   }}
                 />
               </label>
-              {image && (
-                <button type="button" onClick={() => setImage('')} className="text-xs text-red-400 hover:underline">
+              {pic && (
+                <button type="button" onClick={() => setPic('')} className="text-xs text-red-400 hover:underline">
                   画像を削除
                 </button>
               )}
             </div>
-            {image && <img src={image} alt="preview" className="max-h-40 rounded border border-zinc-700" />}
+            {pic && <img src={pic} alt="preview" className="max-h-40 rounded border border-zinc-700" />}
             <button disabled={loading} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg">{loading ? '送信中...' : '新規スレッドを立てる'}</button>
           </form>
         )}
@@ -181,11 +183,11 @@ export default function Home() {
           ) : (
             filtered.map((post, idx) => {
               const isOpen = !!expanded[post.id];
-              const replyCount = post.replies?.length || 0;
+              const replyCount = Array.isArray(post.replies) ? post.replies.length : 0;
               return (
                 <div key={post.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl shadow">
                   <div className="text-xs text-gray-400 mb-1">
-                    <span className="font-bold text-white text-sm">{idx + 1}. {post.title}</span> ／ <span className="text-emerald-400 font-bold">{post.name}</span> ／ {new Date(post.createdAt).toLocaleString('ja-JP')}
+                    <span className="font-bold text-white text-sm">{idx + 1}. {post.title || '無題'}</span> ／ <span className="text-emerald-400 font-bold">{post.name || '名無しさん'}</span> ／ {new Date(post.createdAt).toLocaleString('ja-JP')}
                   </div>
                   {post.content && <div className="whitespace-pre-wrap text-gray-100 mb-2">{post.content}</div>}
                   {post.image && <img src={post.image} alt="post" className="max-h-72 rounded-lg mb-3 border border-zinc-800" />}
@@ -209,10 +211,10 @@ export default function Home() {
 
                   {isOpen && (
                     <div className="mt-3 pl-3 border-l-2 border-zinc-800 space-y-2">
-                      {post.replies?.map((r, rIdx) => (
+                      {Array.isArray(post.replies) && post.replies.map((r, rIdx) => (
                         <div key={r.id} className="bg-zinc-800/80 p-2 rounded text-sm">
                           <div className="text-xs text-gray-400">
-                            <span className="font-bold text-gray-200">≫{rIdx + 1}</span> <span className="text-emerald-400 font-bold">{r.name}</span> ({new Date(r.createdAt).toLocaleString('ja-JP')})
+                            <span className="font-bold text-gray-200">≫{rIdx + 1}</span> <span className="text-emerald-400 font-bold">{r.name || '名無しさん'}</span> ({new Date(r.createdAt).toLocaleString('ja-JP')})
                           </div>
                           {r.content && <div className="whitespace-pre-wrap text-gray-100 mt-1">{r.content}</div>}
                           {r.image && <img src={r.image} alt="reply" className="max-h-56 rounded mt-1.5 border border-zinc-700" />}
