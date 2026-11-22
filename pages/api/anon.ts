@@ -21,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json(posts);
   }
   if (req.method === 'POST') {
-    const { action, postId, name, title, content } = req.body;
+    const { action, postId, name, title, content, image } = req.body;
     if ((action === 'like' || action === 'unlike') && postId) {
       const current = await prisma.anonPost.findUnique({ where: { id: postId } });
       const diff = action === 'like' ? 1 : -1;
@@ -32,13 +32,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
       return res.status(200).json(updated);
     }
-    if (!content?.trim()) return res.status(400).json({ error: '本文必須' });
+    if (!content?.trim() && !image) return res.status(400).json({ error: '入力必須' });
     const n = name?.trim() || '名無しさん';
+    const c = content?.trim() || '';
+    const img = typeof image === 'string' && image.startsWith('data:image/') ? image : null;
     if (postId) {
-      const r = await prisma.anonReply.create({ data: { postId, name: n, content: content.trim() } });
+      const r = await prisma.anonReply.create({ data: { postId, name: n, content: c, image: img } });
       return res.status(201).json(r);
     }
-    const p = await prisma.anonPost.create({ data: { name: n, title: title?.trim() || '無題', content: content.trim() } });
+    const p = await prisma.anonPost.create({ data: { name: n, title: title?.trim() || '無題', content: c, image: img } });
     return res.status(201).json(p);
   }
   return res.status(405).end();
