@@ -60,10 +60,11 @@ export default function Home() {
     setLikedIds({ ...likedIds, [postId]: true });
     setPosts(posts.map((p) => (p.id === postId ? { ...p, likes: (p.likes || 0) + 1 } : p)));
     await fetch('/api/anon', {
-      method: 'PATCH',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ postId }),
+      body: JSON.stringify({ action: 'like', postId }),
     });
+    await load();
   };
 
   const q = search.trim().toLowerCase();
