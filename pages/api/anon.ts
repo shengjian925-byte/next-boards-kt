@@ -22,9 +22,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   if (req.method === 'POST') {
     const { action, postId, name, title, content } = req.body;
-    if (action === 'like' && postId) {
+    if ((action === 'like' || action === 'unlike') && postId) {
       const current = await prisma.anonPost.findUnique({ where: { id: postId } });
-      const nextLikes = (current?.likes || 0) + 1;
+      const diff = action === 'like' ? 1 : -1;
+      const nextLikes = Math.max(0, (current?.likes || 0) + diff);
       const updated = await prisma.anonPost.update({
         where: { id: postId },
         data: { likes: nextLikes },
