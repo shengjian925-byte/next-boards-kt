@@ -1,7 +1,30 @@
 import { useState, useEffect } from 'react';
 
-type Reply = { id: string; name: string; content: string; createdAt: string };
-type Post = { id: string; name: string; title: string; content: string; likes?: number; createdAt: string; replies: Reply[] };
+type Reply = { id: string; name: string; content: string; image?: string; createdAt: string };
+type Post = { id: string; name: string; title: string; content: string; image?: string; likes?: number; createdAt: string; replies: Reply[] };
+
+function compressImage(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const max = 800;
+        let w = img.width, h = img.height;
+        if (w > max || h > max) {
+          if (w > h) { h = Math.round((h * max) / w); w = max; }
+          else { w = Math.round((w * max) / h); h = max; }
+        }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -13,8 +36,10 @@ export default function Home() {
   const [name, setName] = useState('');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const = useState('');
   const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
   const [replyName, setReplyName] = useState<{ [key: string]: string }>({});
+  const [replyImg, setReplyImg] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
@@ -33,29 +58,31 @@ export default function Home() {
 
   const submitPost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim()) return;
+    if (!content.trim() && !image) return;
     setLoading(true);
     await fetch('/api/anon', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, title, content }),
+      body: JSON.stringify({ name, title, content, image }),
     });
-    setTitle(''); setContent('');
+    setTitle(''); setContent(''); setImage('');
     setOpenForm(false);
     await load();
     setLoading(false);
   };
 
   const submitReply = async (postId: string) => {
-    const text = replyText[postId];
-    if (!text?.trim()) return;
+    const text = replyText[postId] || '';
+    const img = replyImg[postId] || '';
+    if (!text.trim() && !img) return;
     setLoading(true);
     await fetch('/api/anon', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ postId, name: replyName[postId], content: text }),
+      body: JSON.stringify({ postId, name: replyName[postId], content: text, image: img }),
     });
     setReplyText({ ...replyText, [postId]: '' });
+    setReplyImg({ ...replyImg, [postId]: '' });
     setExpanded({ ...expanded, [postId]: true });
     await load();
     setLoading(false);
@@ -103,7 +130,7 @@ export default function Home() {
     <div className="min-h-screen bg-black text-gray-100 font-sans">
       <div className="max-w-2xl mx-auto p-4">
         <div className="flex items-center justify-between border-b border-gray-800 pb-3 mb-3">
-          <h1 className="text-xl font-bold text-white">大ブルガリアの掲示板</h1>
+          <h1 className="text-xl font-bold text-white">匿名掲示板</h1>
           <button type="button" onClick={() => setOpenForm(!openForm)} className="bg-blue-600 hover:bg-blue-500 text-white font-bold w-11 h-11 rounded-xl text-2xl flex items-center justify-center shadow">
             {openForm ? '×' : '＋'}
           </button>
@@ -124,7 +151,27 @@ export default function Home() {
           <form onSubmit={submitPost} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl shadow mb-6 space-y-2">
             <input className="w-full bg-zinc-800 border border-zinc-700 text-white p-2 rounded placeholder-gray-400" placeholder="名前（省略可：名無しさん）" value={name} onChange={(e) => setName(e.target.value)} />
             <input className="w-full bg-zinc-800 border border-zinc-700 text-white p-2 rounded placeholder-gray-400" placeholder="タイトル（省略可）" value={title} onChange={(e) => setTitle(e.target.value)} />
-            <textarea className="w-full bg-zinc-800 border border-zinc-700 text-white p-2 rounded placeholder-gray-400" rows={3} required placeholder="新規スレッドの内容..." value={content} onChange={(e) => setContent(e.target.value)} />
+            <textarea className="w-full bg-zinc-800 border border-zinc-700 text-white p-2 rounded placeholder-gray-400" rows={3} placeholder="新規スレッドの内容..." value={content} onChange={(e) => setContent(e.target.value)} />
+            <div className="flex items-center gap-2">
+              <label className="bg-zinc-800 border border-zinc-700 text-gray-200 text-xs px-3 py-2 rounded-lg cursor-pointer hover:bg-zinc-700">
+                画像を選択
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const list = e.target.files;
+                    if (list && list.length > 0) setImage(await compressImage(list.item(0)!));
+                  }}
+                />
+              </label>
+              {image && (
+                <button type="button" onClick={() => setImage('')} className="text-xs text-red-400 hover:underline">
+                  画像を削除
+                </button>
+              )}
+            </div>
+            {image && <img src={image} alt="preview" className="max-h-40 rounded border border-zinc-700" />}
             <button disabled={loading} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg">{loading ? '送信中...' : '新規スレッドを立てる'}</button>
           </form>
         )}
@@ -141,7 +188,8 @@ export default function Home() {
                   <div className="text-xs text-gray-400 mb-1">
                     <span className="font-bold text-white text-sm">{idx + 1}. {post.title}</span> ／ <span className="text-emerald-400 font-bold">{post.name}</span> ／ {new Date(post.createdAt).toLocaleString('ja-JP')}
                   </div>
-                  <div className="whitespace-pre-wrap text-gray-100 mb-3">{post.content}</div>
+                  {post.content && <div className="whitespace-pre-wrap text-gray-100 mb-2">{post.content}</div>}
+                  {post.image && <img src={post.image} alt="post" className="max-h-72 rounded-lg mb-3 border border-zinc-800" />}
 
                   <div className="flex items-center gap-2 pt-2 border-t border-zinc-800">
                     <button
@@ -151,44 +199,42 @@ export default function Home() {
                     >
                       ♥ {post.likes || 0}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setExpanded({ ...expanded, [post.id]: !isOpen })}
-                      className="px-3 py-1 rounded-full text-xs font-bold bg-zinc-800 border border-zinc-700 text-gray-300 hover:text-white"
-                    >
-                      {isOpen ? '▲ 返信を閉じる' : `▼ 返信を表示・書く (${replyCount})`}
-                    </button>
-                  </div>
+{isOpen && (
 
-                  {isOpen && (
-                    <div className="mt-3 pl-3 border-l-2 border-zinc-800 space-y-2">
-                      {post.replies?.map((r, rIdx) => (
-                        <div key={r.id} className="bg-zinc-800/80 p-2 rounded text-sm">
-                          <div className="text-xs text-gray-400">
-                            <span className="font-bold text-gray-200">≫{rIdx + 1}</span> <span className="text-emerald-400 font-bold">{r.name}</span> ({new Date(r.createdAt).toLocaleString('ja-JP')})
-                          </div>
-                          <div className="whitespace-pre-wrap text-gray-100 mt-1">{r.content}</div>
-                        </div>
-                      ))}
+{post.replies?.map((r, rIdx) => (
 
-                      <div className="flex flex-col gap-1 pt-1">
-                        <input className="bg-zinc-800 border border-zinc-700 text-white p-1.5 rounded text-sm placeholder-gray-400" placeholder="名前（省略可）" value={replyName[post.id] || ''} onChange={(e) => setReplyName({ ...replyName, [post.id]: e.target.value })} />
-                        <div className="flex gap-1">
-                          <input className="bg-zinc-800 border border-zinc-700 text-white p-1.5 rounded text-sm flex-1 placeholder-gray-400" placeholder="返信を書く..." value={replyText[post.id] || ''} onChange={(e) => setReplyText({ ...replyText, [post.id]: e.target.value })} />
-                          <button type="button" disabled={loading} onClick={() => submitReply(post.id)} className="bg-zinc-700 hover:bg-zinc-600 text-white text-sm px-3 py-1.5 rounded font-bold">
-                            返信
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-    </div>
-  );
-            }
 
+≫{rIdx + 1} {r.name} ({new Date(r.createdAt).toLocaleString('ja-JP')})
+
+{r.content && {r.content}}
+{r.image && }
+
+))}
+<input className="bg-zinc-800 border border-zinc-700 text-white p-1.5 rounded text-sm placeholder-gray-400" placeholder="名前（省略可）" value={replyName[post.id] || ''} onChange={(e) => setReplyName({ ...replyName, [post.id]: e.target.value })} />
+
+<input className="bg-zinc-800 border border-zinc-700 text-white p-1.5 rounded text-sm flex-1 placeholder-gray-400" placeholder="返信を書く..." value={replyText[post.id] || ''} onChange={(e) => setReplyText({ ...replyText, [post.id]: e.target.value })} />
+画像
+<button type="button" disabled={loading} onClick={() => submitReply(post.id)} className="bg-zinc-700 hover:bg-zinc-600 text-white text-sm px-3 py-1.5 rounded font-bold">
+返信
+
+
+{replyImg[post.id] && (
+
+
+<button type="button" onClick={() => setReplyImg({ ...replyImg, [post.id]: '' })} className="text-xs text-red-400 hover:underline">
+取消
+
+
+)}
+
+
+)}
+
+);
+})
+)}
+
+
+
+);
+  }
