@@ -36,7 +36,7 @@ export default function Home() {
   const [name, setName] = useState('');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const = useState('');
+  const [pic,setPic]= useState('');
   const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
   const [replyName, setReplyName] = useState<{ [key: string]: string }>({});
   const [replyImg, setReplyImg] = useState<{ [key: string]: string }>({});
