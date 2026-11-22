@@ -23,7 +23,13 @@ export default function Home() {
     if (Array.isArray(data)) setPosts(data);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    try {
+      const saved = localStorage.getItem('anon_liked_posts');
+      if (saved) setLikedIds(JSON.parse(saved));
+    } catch {}
+  }, []);
 
   const submitPost = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,13 +62,19 @@ export default function Home() {
   };
 
   const handleLike = async (postId: string) => {
-    if (likedIds[postId]) return;
-    setLikedIds({ ...likedIds, [postId]: true });
-    setPosts(posts.map((p) => (p.id === postId ? { ...p, likes: (p.likes || 0) + 1 } : p)));
+    const already = !!likedIds[postId];
+    const nextLiked = { ...likedIds, [postId]: !already };
+    setLikedIds(nextLiked);
+    try {
+      localStorage.setItem('anon_liked_posts', JSON.stringify(nextLiked));
+    } catch {}
+
+    const diff = already ? -1 : 1;
+    setPosts(posts.map((p) => (p.id === postId ? { ...p, likes: Math.max(0, (p.likes || 0) + diff) } : p)));
     await fetch('/api/anon', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'like', postId }),
+      body: JSON.stringify({ action: already ? 'unlike' : 'like', postId }),
     });
     await load();
   };
@@ -168,14 +180,14 @@ export default function Home() {
                           </button>
                         </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-    </div>
-  );
+)}
+
+);
+})
+)}
+
+
+
+);
 }
+
