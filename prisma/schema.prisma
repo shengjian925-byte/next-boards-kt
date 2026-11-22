@@ -12,6 +12,7 @@ model AnonPost {
   name      String      @default("名無しさん")
   title     String
   content   String
+  image     String?
   likes     Int         @default(0)
   createdAt DateTime    @default(now())
   replies   AnonReply[]
@@ -23,5 +24,6 @@ model AnonReply {
   post      AnonPost @relation(fields: [postId], references: [id], onDelete: Cascade)
   name      String   @default("名無しさん")
   content   String
+  image     String?
   createdAt DateTime @default(now())
 }
