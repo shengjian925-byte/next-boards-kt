@@ -125,7 +125,6 @@ export default function Home() {
       if (sort === 'old') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-
   return (
     <div className="min-h-screen bg-black text-gray-100 font-sans">
       <div className="max-w-2xl mx-auto p-4">
@@ -199,42 +198,64 @@ export default function Home() {
                     >
                       ♥ {post.likes || 0}
                     </button>
-{isOpen && (
+                    <button
+                      type="button"
+                      onClick={() => setExpanded({ ...expanded, [post.id]: !isOpen })}
+                      className="px-3 py-1 rounded-full text-xs font-bold bg-zinc-800 border border-zinc-700 text-gray-300 hover:text-white"
+                    >
+                      {isOpen ? '▲ 返信を閉じる' : `▼ 返信を表示・書く (${replyCount})`}
+                    </button>
+                  </div>
 
-{post.replies?.map((r, rIdx) => (
+                  {isOpen && (
+                    <div className="mt-3 pl-3 border-l-2 border-zinc-800 space-y-2">
+                      {post.replies?.map((r, rIdx) => (
+                        <div key={r.id} className="bg-zinc-800/80 p-2 rounded text-sm">
+                          <div className="text-xs text-gray-400">
+                            <span className="font-bold text-gray-200">≫{rIdx + 1}</span> <span className="text-emerald-400 font-bold">{r.name}</span> ({new Date(r.createdAt).toLocaleString('ja-JP')})
+                          </div>
+                          {r.content && <div className="whitespace-pre-wrap text-gray-100 mt-1">{r.content}</div>}
+                          {r.image && <img src={r.image} alt="reply" className="max-h-56 rounded mt-1.5 border border-zinc-700" />}
+                        </div>
+                      ))}
 
-
-≫{rIdx + 1} {r.name} ({new Date(r.createdAt).toLocaleString('ja-JP')})
-
-{r.content && {r.content}}
-{r.image && }
-
-))}
-<input className="bg-zinc-800 border border-zinc-700 text-white p-1.5 rounded text-sm placeholder-gray-400" placeholder="名前（省略可）" value={replyName[post.id] || ''} onChange={(e) => setReplyName({ ...replyName, [post.id]: e.target.value })} />
-
-<input className="bg-zinc-800 border border-zinc-700 text-white p-1.5 rounded text-sm flex-1 placeholder-gray-400" placeholder="返信を書く..." value={replyText[post.id] || ''} onChange={(e) => setReplyText({ ...replyText, [post.id]: e.target.value })} />
-画像
-<button type="button" disabled={loading} onClick={() => submitReply(post.id)} className="bg-zinc-700 hover:bg-zinc-600 text-white text-sm px-3 py-1.5 rounded font-bold">
-返信
-
-
-{replyImg[post.id] && (
-
-
-<button type="button" onClick={() => setReplyImg({ ...replyImg, [post.id]: '' })} className="text-xs text-red-400 hover:underline">
-取消
-
-
-)}
-
-
-)}
-
-);
-})
-)}
-
-
-
-);
-  }
+                      <div className="flex flex-col gap-1.5 pt-1">
+                        <input className="bg-zinc-800 border border-zinc-700 text-white p-1.5 rounded text-sm placeholder-gray-400" placeholder="名前（省略可）" value={replyName[post.id] || ''} onChange={(e) => setReplyName({ ...replyName, [post.id]: e.target.value })} />
+                        <div className="flex gap-1">
+                          <input className="bg-zinc-800 border border-zinc-700 text-white p-1.5 rounded text-sm flex-1 placeholder-gray-400" placeholder="返信を書く..." value={replyText[post.id] || ''} onChange={(e) => setReplyText({ ...replyText, [post.id]: e.target.value })} />
+                          <label className="bg-zinc-800 border border-zinc-700 text-gray-200 text-xs px-2.5 py-1.5 rounded flex items-center cursor-pointer hover:bg-zinc-700">
+                            画像
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const list = e.target.files;
+                                if (list && list.length > 0) setReplyImg({ ...replyImg, [post.id]: await compressImage(list.item(0)!) });
+                              }}
+                            />
+                          </label>
+                          <button type="button" disabled={loading} onClick={() => submitReply(post.id)} className="bg-zinc-700 hover:bg-zinc-600 text-white text-sm px-3 py-1.5 rounded font-bold">
+                            返信
+                          </button>
+                        </div>
+                        {replyImg[post.id] && (
+                          <div className="flex items-start gap-2">
+                            <img src={replyImg[post.id]} alt="reply preview" className="max-h-32 rounded border border-zinc-700" />
+                            <button type="button" onClick={() => setReplyImg({ ...replyImg, [post.id]: '' })} className="text-xs text-red-400 hover:underline">
+                              取消
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
