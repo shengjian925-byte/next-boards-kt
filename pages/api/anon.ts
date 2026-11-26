@@ -40,8 +40,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const r = await prisma.anonReply.create({ data: { postId, name: n, content: c, image: img } });
       return res.status(201).json(r);
     }
-    const p = await prisma.anonPost.create({ data: { name: n, title: title?.trim() || '無題', content: c, image: img } });
-    return res.status(201).json(p);
+    const p = await prisma.anonPost.create({
+      data: { name: n, title: title?.trim() || '無題', content: c, image: img, secret: req.body.secret || null },
+    });
   }
   return res.status(405).end();
 }
