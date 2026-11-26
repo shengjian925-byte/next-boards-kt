@@ -13,6 +13,7 @@ model AnonPost {
   title     String
   content   String
   image     String?
+  secret    String?
   likes     Int         @default(0)
   createdAt DateTime    @default(now())
   replies   AnonReply[]
